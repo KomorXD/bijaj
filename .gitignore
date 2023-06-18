@@ -1,4 +1,6 @@
-*
-!.gitignore
-!main.py
-!src/
+.idea
+dataset
+output
+*.pth
+__pychache__
+*.pyc
