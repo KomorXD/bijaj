@@ -68,6 +68,7 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0)
     valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
 
+    class_weights = [1.0, 0.2, 0.2, 0.1]
     loss = smp.utils.losses.DiceLoss()
     metrics = [
         utils.metrics.IoU(threshold=0.5),
@@ -120,10 +121,6 @@ def main():
             max_score = valid_logs['iou_score']
             torch.save(model, '../best_model.pth')
             print('Model saved!')
-
-        if i == 25:
-            optimizer.param_groups[0]['lr'] = 1e-5
-            print('Decrease decoder learning rate to 1e-5!')
 
     best_model = torch.load('../best_model.pth')
 
