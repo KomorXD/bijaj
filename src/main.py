@@ -10,8 +10,8 @@ from pathlib import Path
 from multiprocessing import freeze_support
 
 
-TRAIN_IMG_DIR = Path("../dataset/valid").resolve()
-TRAIN_MASKS_DIR = Path("../dataset/valid_masks").resolve()
+TRAIN_IMG_DIR = Path("../dataset/train").resolve()
+TRAIN_MASKS_DIR = Path("../dataset/train_masks").resolve()
 
 VALID_IMG_DIR = Path("../dataset/valid").resolve()
 VALID_MASKS_DIR = Path("../dataset/valid_masks").resolve()
@@ -154,7 +154,7 @@ def main():
     )
 
     utilities.plot_and_save_training_data(epoch_points, iou_scores_rel, loss_rel, output_path=OUTPUT_DIR)
-    utilities.plot_and_save_results(test_dataset_vis, test_dataset, best_model, output_path=OUTPUT_DIR, count=2)
+    utilities.plot_and_save_results(test_dataset_vis, test_dataset, best_model, output_path=OUTPUT_DIR, count=10)
 
 
 if __name__ == '__main__':
