@@ -8,7 +8,7 @@ def get_training_augmentation():
 
         albu.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=0.8, border_mode=0),
 
-        albu.PadIfNeeded(min_height=352, min_width=352, always_apply=True, border_mode=0),
+        albu.PadIfNeeded(min_height=320, min_width=320, always_apply=True, border_mode=0),
         albu.RandomCrop(height=320, width=320, always_apply=True),
 
         albu.GaussNoise(p=0.2),
@@ -25,7 +25,7 @@ def get_training_augmentation():
         albu.OneOf(
             [
                 albu.Sharpen(p=0.5),
-                albu.Blur(blur_limit=(3, 5), p=1),
+                albu.Blur(blur_limit=(3, 5), p=0.33),
                 albu.MotionBlur(blur_limit=(3, 5), p=0.5),
             ],
             p=0.9,
@@ -46,7 +46,14 @@ def get_training_augmentation():
 def get_validation_augmentation():
     test_transform = [
         albu.PadIfNeeded(320, 320, always_apply=True),
-        albu.Resize(320, 320, always_apply=True)
+        albu.RandomCrop(height=320, width=320, always_apply=True),
     ]
+    return albu.Compose(test_transform)
 
+
+def get_test_augmentation():
+    test_transform = [
+        albu.Resize(320, 320, always_apply=True),
+        albu.Normalize(),
+    ]
     return albu.Compose(test_transform)

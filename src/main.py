@@ -9,9 +9,11 @@ from segmentation_models_pytorch import utils
 from pathlib import Path
 from multiprocessing import freeze_support
 
-
 TRAIN_IMG_DIR = Path("../dataset/train").resolve()
 TRAIN_MASKS_DIR = Path("../dataset/train_masks").resolve()
+
+# TRAIN_IMG_DIR = Path("../dataset/train_reduced").resolve()
+# TRAIN_MASKS_DIR = Path("../dataset/train_reduced_masks").resolve()
 
 VALID_IMG_DIR = Path("../dataset/valid").resolve()
 VALID_MASKS_DIR = Path("../dataset/valid_masks").resolve()
@@ -24,10 +26,10 @@ ENCODER_WEIGHTS = 'imagenet'
 CLASSES = ['Animal', 'NonMaskingBackground', "MaskingBackground", "NonMaskingForegroundAttention"]
 ACTIVATION = 'softmax2d'
 DEVICE = 'cuda'
-EPOCHES = 5
+EPOCHES = 10
 
 MODEL_USED = "Unet"
-LOSS_USED = "DiceLoss"
+LOSS_USED = "CrossEntropyLoss"
 OUTPUT_DIR = Path(f"../output/{MODEL_USED}/{ACTIVATION}/{LOSS_USED}").resolve()
 
 
@@ -44,7 +46,6 @@ def main():
         encoder_weights=ENCODER_WEIGHTS,
         classes=len(CLASSES),
         activation=ACTIVATION,
-
     )
 
     preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
@@ -65,13 +66,13 @@ def main():
         classes=CLASSES,
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0)
-    valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0)
+    valid_loader = DataLoader(valid_dataset, batch_size=8, shuffle=False, num_workers=0)
 
-    class_weights = [1.0, 0.2, 0.2, 0.1]
-    loss = smp.utils.losses.DiceLoss()
+    class_weights = torch.tensor([1.0, 0.2, 0.2, 0.1])
+    loss = smp.utils.losses.CrossEntropyLoss(weight=class_weights)
     metrics = [
-        utils.metrics.IoU(threshold=0.5),
+        smp.utils.metrics.IoU(threshold=0.5),
     ]
 
     optimizer = torch.optim.Adam([
@@ -96,7 +97,6 @@ def main():
     )
 
     max_score = 0
-    epoch_points = list(range(0, EPOCHES))
     iou_scores_rel = {
         "train": [],
         "valid": []
@@ -106,28 +106,32 @@ def main():
         "valid": []
     }
 
-    for i in range(0, EPOCHES):
-        print(f'\nEpoch: {i}')
-        train_logs = train_epoch.run(train_loader)
-        valid_logs = valid_epoch.run(valid_loader)
+    try:
+        for i in range(0, EPOCHES):
+            print(f'\nEpoch: {i}')
+            train_logs = train_epoch.run(train_loader)
+            valid_logs = valid_epoch.run(valid_loader)
 
-        iou_scores_rel["train"].append(train_logs['iou_score'])
-        loss_rel["train"].append(train_logs['dice_loss'])
+            iou_scores_rel["train"].append(train_logs['iou_score'])
+            loss_rel["train"].append(train_logs['cross_entropy_loss'])
 
-        iou_scores_rel["valid"].append(valid_logs['iou_score'])
-        loss_rel["valid"].append(valid_logs['dice_loss'])
+            iou_scores_rel["valid"].append(valid_logs['iou_score'])
+            loss_rel["valid"].append(valid_logs['cross_entropy_loss'])
 
-        if max_score < valid_logs['iou_score']:
-            max_score = valid_logs['iou_score']
-            torch.save(model, '../best_model.pth')
-            print('Model saved!')
+            if max_score < valid_logs['iou_score']:
+                max_score = valid_logs['iou_score']
+                torch.save(model, '../best_model.pth')
+                print('Model saved!')
+
+    except KeyboardInterrupt:
+        print("Epoch loop broken")
 
     best_model = torch.load('../best_model.pth')
 
     test_dataset = seg_dataset.Dataset(
         TEST_IMG_DIR,
         TEST_MASKS_DIR,
-        augmentation=aap.get_validation_augmentation(),
+        augmentation=aap.get_test_augmentation(),
         preprocessing=aap.get_preprocessing(preprocessing_fn),
         classes=CLASSES,
     )
@@ -146,12 +150,11 @@ def main():
     test_dataset_vis = seg_dataset.Dataset(
         TEST_IMG_DIR,
         TEST_MASKS_DIR,
-        augmentation=aap.get_validation_augmentation(),
         classes=CLASSES,
     )
 
-    utilities.plot_and_save_training_data(epoch_points, iou_scores_rel, loss_rel, output_path=OUTPUT_DIR)
-    utilities.plot_and_save_results(test_dataset_vis, test_dataset, best_model, output_path=OUTPUT_DIR, count=10)
+    utilities.plot_and_save_training_data(iou_scores_rel, loss_rel, output_path=OUTPUT_DIR)
+    utilities.plot_and_save_results(test_dataset_vis, test_dataset, best_model, output_path=OUTPUT_DIR, count=5)
 
 
 if __name__ == '__main__':

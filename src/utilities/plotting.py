@@ -43,7 +43,9 @@ def plot_and_save_results(test_visualize, test_dataset, model, output_path, coun
         plt.savefig(f"{output_path}/result-{i}.png")
 
 
-def plot_and_save_training_data(epoches, iou_scores, loss_points, output_path):
+def plot_and_save_training_data(iou_scores, loss_points, output_path):
+    epoches = list(range(0, len(iou_scores["train"])))
+
     plt.figure(figsize=(18, 9))
 
     plt.subplot(1, 2, 1)
