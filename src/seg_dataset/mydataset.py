@@ -1,10 +1,10 @@
-import cv2
 import os
+import cv2
 import numpy as np
 from torch.utils.data import Dataset as BaseDataset
 
 
-class Dataset(BaseDataset):
+class MyDataset(BaseDataset):
     CLASSES = [
         "Animal",
         "MaskingBackground",
@@ -35,7 +35,7 @@ class Dataset(BaseDataset):
         self.images_fps = [os.path.join(images_dir, image_id) for image_id in self.image_ids]
         self.masks_fps = [os.path.join(masks_dir, mask_id) for mask_id in self.masks_ids]
 
-        self.class_values = [self.CLASSES.index(cls) for cls in classes]
+        self.class_values = sorted([self.CLASSES.index(cls) for cls in classes])
 
         self.augmentation = augmentation
         self.preprocessing = preprocessing

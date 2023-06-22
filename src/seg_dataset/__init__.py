@@ -1,1 +1,1 @@
-from src.seg_dataset.dataset import Dataset
+from src.seg_dataset.mydataset import MyDataset

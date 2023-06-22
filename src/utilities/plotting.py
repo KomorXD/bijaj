@@ -53,7 +53,7 @@ def plot_and_save_training_data(iou_scores, loss_points, output_path):
     plt.plot(epoches, iou_scores["valid"], color="red", label="Valid IoU score")
     plt.xlabel("Epoch")
     plt.ylabel("Score")
-    plt.ylim(0.0, 1.0)
+    plt.ylim(min(iou_scores), max(iou_scores))
     plt.legend()
 
     plt.subplot(1, 2, 2)
@@ -61,7 +61,7 @@ def plot_and_save_training_data(iou_scores, loss_points, output_path):
     plt.plot(epoches, loss_points["valid"], color="red", label="Valid loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.ylim(0.0, 1.0)
+    plt.ylim(min(loss_points), max(loss_points))
     plt.legend()
 
     plt.savefig(f"{output_path}/training_data.png")
