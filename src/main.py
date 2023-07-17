@@ -12,9 +12,6 @@ from multiprocessing import freeze_support
 TRAIN_IMG_DIR = Path("../dataset/train").resolve()
 TRAIN_MASKS_DIR = Path("../dataset/train_masks").resolve()
 
-# TRAIN_IMG_DIR = Path("../dataset/train_reduced").resolve()
-# TRAIN_MASKS_DIR = Path("../dataset/train_reduced_masks").resolve()
-
 VALID_IMG_DIR = Path("../dataset/valid").resolve()
 VALID_MASKS_DIR = Path("../dataset/valid_masks").resolve()
 
@@ -26,12 +23,14 @@ ENCODER_WEIGHTS = 'imagenet'
 CLASSES = ['Animal', "MaskingBackground", 'NonMaskingBackground', "NonMaskingForegroundAttention"]
 ACTIVATION = 'softmax2d'
 DEVICE = 'cuda'
-EPOCHES = 200
+EPOCHES = 600
+LR = 0.000001
 
-MODEL_USED = "Unet"
+MODEL_USED = "UnetPlusPlus"
 LOSS_USED = "CrossEntropyLoss"
-OUTPUT_DIR = Path(f"../output/{MODEL_USED}-{ACTIVATION}-{LOSS_USED}-{ENCODER}2").resolve()
-OUT_MODEL = Path(f"../best-model-{MODEL_USED}-{ACTIVATION}-{LOSS_USED}-{ENCODER}2.pth").resolve()
+OUTPUT_DIR = Path(f"../output/{MODEL_USED}-{ACTIVATION}-{LOSS_USED}-{ENCODER}-{LR}").resolve()
+OUT_MODEL = Path(f"../best-2nd-model-{MODEL_USED}-{ACTIVATION}-{LOSS_USED}-{ENCODER}-{LR}.pth").resolve()
+IN_MODEL = Path("../train-cand.pth").resolve()
 
 LOSS_LABELS = {
     "CrossEntropyLoss": 'cross_entropy_loss',
@@ -48,14 +47,16 @@ def main():
 
     utilities.fix_ssl_bug_thingy()
 
-    model = smp.UnetPlusPlus(
+    preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+
+    '''model = smp.Unet(
         encoder_name=ENCODER,
         encoder_weights=ENCODER_WEIGHTS,
         classes=len(CLASSES),
         activation=ACTIVATION,
-    )
+    )'''
 
-    preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+    model = torch.load(IN_MODEL)
 
     train_dataset = seg_dataset.MyDataset(
         TRAIN_IMG_DIR,
@@ -73,7 +74,7 @@ def main():
         classes=CLASSES,
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=6, shuffle=True, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0)
     valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
 
     class_weights = torch.tensor([1.0, 0.2, 0.2, 0.1])
@@ -83,7 +84,7 @@ def main():
     ]
 
     optimizer = torch.optim.Adam([
-        dict(params=model.parameters(), lr=0.0001),
+        dict(params=model.parameters(), lr=LR),
     ])
 
     train_epoch = smp.utils.train.TrainEpoch(
@@ -131,10 +132,6 @@ def main():
                 best_epoch = i
                 torch.save(model, OUT_MODEL)
                 print('Model saved!')
-
-            if i == 50:
-                optimizer.param_groups[0]['lr'] = 0.00001
-                print('Decrease decoder learning rate to 0.001...')
 
     except KeyboardInterrupt:
         print("Epoch loop broken")
